@@ -38,7 +38,7 @@ I use python 12 but versions within reason should work
     ```
 
 2.  **Install the required packages:**
-    The project relies on the `Nemo` and `Numpy` libraries. Install them using pip:
+    The project relies on the `Nemo`, `Numpy` and other libraries. Install them using pip:
     ```sh
     pip install -r requirements.txt
     ```
