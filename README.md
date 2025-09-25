@@ -6,7 +6,7 @@
 
 A simple, lightweight, Python tool that transcribes audio into a text file and prints on command line using the nvidia/parakeet-tdt-0.6b-v2 model, very battery and hardware efficient
 
-Very handy for Meetings and Lectures
+Very handy for Meetings and Lectures on a laptop or a pi
 
 ---
 
