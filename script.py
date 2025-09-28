@@ -1,13 +1,28 @@
 import sounddevice as sd
 import numpy as np
 import queue
+import sys
 import threading
 import nemo.collections.asr as nemo_asr
 from datetime import datetime
 from absl.logging import exception
+import configparser
+import webrtcvad
+
+
+config = configparser.ConfigParser()
+config.read('config.ini')
+
+model_name = config.get('model', 'model_name')
+samplerate = config.getint('audio', 'samplerate')
+chunk_seconds = config.getint('audio', 'chunk_seconds')
+chunk_size = chunk_seconds * samplerate
 
 pause_event = threading.Event()
+quit_event = threading.Event()
+
 pause_event.set()
+
 
 timestamp = datetime.now().strftime("%Y-%m-%d")
 
@@ -20,7 +35,7 @@ while True:
             f.write(timestamp + "\n")
         break
     elif Filenamemode.lower() == "n":
-        classname = input("Enter class name: ")
+        classname = input("Enter desired file name: ")
         filename = f"{classname} {timestamp}.txt"
         break
     else:
@@ -29,34 +44,37 @@ while True:
 
 
 # --- Load ASR model ---
-model = nemo_asr.models.ASRModel.from_pretrained(model_name="nvidia/parakeet-tdt-0.6b-v2")
+model = nemo_asr.models.ASRModel.from_pretrained(model_name=model_name)
 print("Model loaded")
 
-# --- Audio streaming setup ---
-samplerate = 16000
-chunk_size = 5 * samplerate  # 5 seconds worth of audio
+# --- Audio streaming setup --- 
 q = queue.Queue()
 
 def callback(indata, frames, time, status):
     if not pause_event.is_set(): # If paused, do nothing
         return
     if status:
-        print(status, flush=True)
+        print(f"Audio Status: {status}\n>> ", end="")
     # Always flatten to 1-D
     q.put(indata.flatten().astype(np.float32))
 
 def console_input_thread():
     while True:
-        user_text = input().lower()
+        user_text = input("\nEnter command (pause, exit) or put text in file: \n").lower()
         with open(filename, "a", encoding="utf-8") as f:
             f.write("[USER]: " + user_text + "\n")
         print("Added to file.")
-        if user_text == "pause":
+        if user_text in ("pause" , 'p'):
             print("\n--- Transcription PAUSED. Type 'resume' to continue. ---\n")
             pause_event.clear() #
-        elif user_text == "resume":
+        elif user_text in ("resume", "r", "go"):
             print("\n--- Transcription RESUMED. ---\n")
             pause_event.set()
+        elif user_text in ("exit", "quit", "q"):
+            print("\n--- Transcription EXIT ATTEMPTING. ---\n")
+            pause_event.clear()
+            quit_event.set()
+            break
 
 
 threading.Thread(target=console_input_thread, daemon=True).start()
@@ -66,7 +84,8 @@ print("Streaming from microphone... Press Ctrl+C to stop.")
 try:
     buffer = []
     with sd.InputStream(samplerate=samplerate, channels=1, callback=callback):
-        while True:
+        while not quit_event.is_set():
+
             try:
                 audio_chunk = q.get(timeout=0.1)
             except queue.Empty:
@@ -82,12 +101,15 @@ try:
                 # keep leftover
                 buffer = [audio_float[chunk_size:]]
 
-                print("Transcribing...")
+                print("Transcribing")
                 result = model.transcribe(audio=[to_process], batch_size=1)
-                print("Transcribed:", result[0].text)
+                transcribed_text = result[0].text if result and result[0].text else None
 
-                with open(filename, "a", encoding="utf-8") as f:
-                    f.write("[ASR]:" + result[0].text + "\n")
+                print("Transcribed:", result[0].text)
+                if transcribed_text:
+                    with open(filename, "a", encoding="utf-8") as f:
+                        f.write("[ASR]:" + result[0].text + "\n")
+        sys.exit()
 
 
 except KeyboardInterrupt:
