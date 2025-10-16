@@ -8,17 +8,31 @@ from datetime import datetime
 from absl.logging import exception
 import configparser
 import webrtcvad
+import argparse
 
 # buncha bs
 config = configparser.ConfigParser()
 config.read('config.ini')
+
+parser = argparse.ArgumentParser(description="Real-time audio transcription to a text file.")
+subparsers = parser.add_subparsers(dest='command', help='Available commands')
+
+# --- 'new' command: Creates a new file ---
+parser_new = subparsers.add_parser('new', help='Create a new transcription file.')
+parser_new.add_argument('name', type=str, help='The base name for the new file (e.g., "Meeting Notes").')
+
+# --- 'append' command: Appends to an existing file ---
+parser_append = subparsers.add_parser('append', help='Append to an existing transcription file.')
+parser_append.add_argument('file', type=argparse.FileType('a'), help='The full path to the file to append to.')
+
+args = parser.parse_args()
 
 # get config variables
 model_name = config.get('model', 'model_name')
 samplerate = config.getint('audio', 'samplerate')
 chunk_seconds = config.getint('audio', 'chunk_seconds')
 vad_state = config.getboolean('vad', 'Voice_activation')
-vad_Aggressiveness = config.getboolean('vad', 'Aggressiveness')
+vad_Aggressiveness = config.getint('vad', 'Aggressiveness')
 chunk_size = chunk_seconds * samplerate
 
 pause_event = threading.Event()
@@ -35,19 +49,30 @@ VAD_SAMPLES_PER_FRAME = int(samplerate * VAD_FRAME_DURATION_MS / 1000)
 frame_duration = 30
 samples_per_frame = int(samplerate * frame_duration / 1000)
 
-while True:
-    Filenamemode = input("Append or new file? (A or N) ")
-    if Filenamemode.lower() == "a":
-        filename = input("Enter filename: ")
-        with open(filename, "a", encoding="utf-8") as f:
-            f.write(timestamp + "\n")
-        break
-    elif Filenamemode.lower() == "n":
-        classname = input("Enter desired file name: ")
-        filename = f"{classname} {timestamp}.txt"
-        break
-    else:
-        print("Invalid choice, please enter 'A' or 'N'.")
+def start_up_script():
+    while True:
+        Filenamemode = input("Append or new file? (A or N) ")
+        if Filenamemode.lower() == "a":
+            filename = input("Enter filename: ")
+            return filename
+        elif Filenamemode.lower() == "n":
+            classname = input("Enter desired file name: ")
+            filename = f"{classname} {timestamp}.txt"
+            return filename
+
+        else:
+            print("Invalid choice, please enter 'A' or 'N'.")
+
+
+if args.command is None:
+    filename = start_up_script()
+elif args.command == 'new':
+    timestamp = datetime.now().strftime("%Y-%m-%d")
+    filename = f"{args.name}{timestamp}.txt"
+elif args.command  =='append':
+    filename = args.file.name
+    args.file.write(f"\n--- Appending on {timestamp} ---\n")
+    args.file.close()
 
 # --- Load ASR model ---
 model = nemo_asr.models.ASRModel.from_pretrained(model_name=model_name)
