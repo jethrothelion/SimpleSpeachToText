@@ -10,7 +10,7 @@ import configparser
 import webrtcvad
 import argparse
 
-# buncha bs
+# command line arg set up
 config = configparser.ConfigParser()
 config.read('config.ini')
 
@@ -74,6 +74,7 @@ elif args.command  =='append':
     args.file.write(f"\n--- Appending on {timestamp} ---\n")
     args.file.close()
 
+
 # --- Load ASR model ---
 model = nemo_asr.models.ASRModel.from_pretrained(model_name=model_name)
 print("Model loaded")
@@ -93,10 +94,7 @@ def callback(indata, frames, time, status):
 
 def console_input_thread():
     while True:
-        user_text = input("\nEnter command (pause, exit) or put text in file: \n").lower()
-        with open(filename, "a", encoding="utf-8") as f:
-            f.write("[USER]: " + user_text + "\n")
-        print("Added to file.")
+        user_text = input("\nEnter command (pause, exit, resume) or any other text to put in file: \n").lower()
         if user_text in ("pause", 'p'):
             print("\n--- Transcription PAUSED. Type 'resume' to continue. ---\n")
             pause_event.clear()  #
@@ -108,6 +106,10 @@ def console_input_thread():
             pause_event.clear()
             quit_event.set()
             break
+        else:
+            with open(filename, "a", encoding="utf-8") as f:
+                f.write("[USER]: " + user_text + "\n")
+            print("Added to file.")
 
 
 threading.Thread(target=console_input_thread, daemon=True).start()
@@ -140,7 +142,7 @@ try:
                     is_speech = vad.is_speech(frame_bytes, samplerate)
                     if is_speech:
                         transcription_buffer.append(frame_to_process)
-                        print("speach")
+                        print("speach has been detected, saving to file...")
 
                 if transcription_buffer:
                     audio_float = np.concatenate(transcription_buffer, axis=0)
