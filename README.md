@@ -50,3 +50,20 @@ Using the `SimpleTextToSpeech` script is straightforward. Just run the python fi
 
 Feel free to build off of this very simple file
 
+
+1.  **Default behavior with no argumants:**
+    ```sh
+    python3 script.py
+    ```
+it will ask for new or append to file and then go
+
+2.  **Specify new file (will create a new file in the code directory):**
+    ```sh
+    python3 script.py new "Meating notes"
+    ```
+
+2.  **Specify append a file:**
+    ```sh
+    python3 script.py append "C:/Full/path/to/existing/file"
+    ```
+
