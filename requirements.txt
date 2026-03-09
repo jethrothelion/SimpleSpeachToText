@@ -19,3 +19,6 @@ boto3==1.42.25
 botocore==1.42.25
 braceexpand==0.1.7
 certifi==2026.1.4
+
+#setuptools version 81 important
+setuptools==81.0.0

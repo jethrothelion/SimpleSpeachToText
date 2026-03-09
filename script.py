@@ -5,12 +5,11 @@ import sys
 import threading
 import nemo.collections.asr as nemo_asr
 from datetime import datetime
-from absl.logging import exception
 import configparser
 import webrtcvad
 import argparse
 
-# command line arg set up
+# --- command line arg set up ---
 config = configparser.ConfigParser()
 config.read('config.ini')
 
@@ -27,7 +26,7 @@ parser_append.add_argument('file', type=argparse.FileType('a'), help='The full p
 
 args = parser.parse_args()
 
-# get config variables
+# --- read config variables ---
 model_name = config.get('model', 'model_name')
 samplerate = config.getint('audio', 'samplerate')
 chunk_seconds = config.getint('audio', 'chunk_seconds')
