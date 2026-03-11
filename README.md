@@ -4,9 +4,9 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/license/mit)
 [![made-with-python](https://img.shields.io/badge/Made%20with-Python-1f425f.svg)](https://www.python.org/)
 
-A simple, lightweight, Python tool that transcribes audio into a text file and prints on command line using the nvidia/parakeet-tdt-0.6b-v2 model, very battery and hardware efficient
+A simple voice to text Python transcription script focusing on the balance between power draw, simplicity and accuracy using the nvidia/parakeet-tdt-0.6b-v2 model
 
-Very handy for Meetings and Lectures on a laptop or a pi
+Very handy for Meetings and Lectures on a laptop or a pi, Saves to file and outputs to terminal
 
 ---
 
@@ -17,17 +17,17 @@ Very handy for Meetings and Lectures on a laptop or a pi
 * **Cross-Platform**: Tested with Linux and windows 10
 * **Lightweight**: Minimal dependencies, a small footprint and easy to run
 * **User Input** You can add text along side the transcription with a different line header to differentiate
-* **Append or new file** Asks if want to create a new or add on to a existing file 
+* **Append or new file** Asks if want to create a new or add on to a existing file with command line args available
 
 ---
 
 ## 🚀 Getting Started
 
-Follow these instructions to get a copy of the project up and running on your local machine.
+Follow these instructions to get a copy of the project up and running on your local machine. Assuming your microphone is already set up
 
 ### Prerequisites
 
-I use python 12 but versions within reason should work
+I used python 12 but versions within reason might work
 
 ### Installation
 

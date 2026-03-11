@@ -1,3 +1,5 @@
+import os
+
 import sounddevice as sd
 import numpy as np
 import queue
@@ -123,6 +125,8 @@ try:
             try:
                 audio_chunk = q.get(timeout=0.1)
 
+                print(f"Queue Size (Chunks waiting): {q.qsize()}    ", end="\r")
+
                 processing_buffer = np.concatenate([processing_buffer, audio_chunk.flatten()])
             except queue.Empty:
                 continue
@@ -130,6 +134,12 @@ try:
 
                 frame_to_process = processing_buffer[:VAD_SAMPLES_PER_FRAME]
                 processing_buffer = processing_buffer[VAD_SAMPLES_PER_FRAME:]
+
+                #If volume silent skip loop
+                frame_volume = np.linalg.norm(frame_to_process)
+                if frame_volume < 0.1:
+                    continue
+
                 if not vad_state:
                     transcription_buffer.append(frame_to_process)
                 else:
@@ -141,30 +151,36 @@ try:
                     is_speech = vad.is_speech(frame_bytes, samplerate)
                     if is_speech:
                         transcription_buffer.append(frame_to_process)
-                        print("speach has been detected, saving to file...")
 
-                if transcription_buffer:
-                    audio_float = np.concatenate(transcription_buffer, axis=0)
+            if transcription_buffer:
+                audio_float = np.concatenate(transcription_buffer, axis=0)
 
-                    if len(audio_float) >= chunk_size:
-                        to_process = audio_float[:chunk_size]
+                if len(audio_float) >= chunk_size:
+                    to_process = audio_float[:chunk_size]
 
-                        remaining_audio = audio_float[chunk_size:]
-                        transcription_buffer = [remaining_audio] if len(remaining_audio) > 0 else []
+                    remaining_audio = audio_float[chunk_size:]
+                    transcription_buffer = [remaining_audio] if len(remaining_audio) > 0 else []
 
-                        print("Transcribing")
-                        result = model.transcribe(audio=[to_process], batch_size=1)
-                        transcribed_text = result[0].text if result and result[0].text else None
 
-                        print("Transcribed:", result[0].text)
-                        if transcribed_text:
-                            with open(filename, "a", encoding="utf-8") as f:
-                                f.write("[ASR]:" + result[0].text + "\n")
-        sys.exit()
+                    result = model.transcribe(audio=[to_process], batch_size=1)
+
+                    # Because the queue print uses \r, we add an empty print() here.
+                    # This ensures the "Transcribing" text drops to a clean, new line
+                    # and doesn't accidentally overwrite the queue text in a messy way.
+                    print()
+
+                    # transcriped text = result if exists and is text if not it is just a space
+                    transcribed_text = result[0].text if result and result[0].text else " "
+                    print("Transcribed:", transcribed_text)
+                    if transcribed_text:
+                        with open(filename, "a", encoding="utf-8") as f:
+                            f.write("[ASR]:" + transcribed_text + "\n")
+        os._exit(0)
 
 
 except KeyboardInterrupt:
     print("\nStopped by user.")
+    os._exit(0)
 except Exception as e:
     print(f"Error: {e}")
 
