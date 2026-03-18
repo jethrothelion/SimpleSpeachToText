@@ -18,7 +18,7 @@ Very handy for Meetings and Lectures on a laptop or a pi, Saves to file and outp
 * **Lightweight**: Minimal dependencies, a small footprint and easy to run
 * **User Input** You can add text along side the transcription with a different line header to differentiate
 * **Append or new file** Asks if want to create a new or add on to a existing file with command line args available
-
+* **Colors** Colorful text (might wanna change to your own prefered colors lol)
 ---
 
 ## 🚀 Getting Started
