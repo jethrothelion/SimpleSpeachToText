@@ -2,6 +2,7 @@
 #the user wait after hitting run
 import argparse
 import os
+from datetime import datetime
 
 # --- command line arg set up ---
 parser = argparse.ArgumentParser(description="Real-time audio transcription to a text file.")
@@ -37,6 +38,17 @@ def get_filename():
         else:
             print("Invalid choice, please enter 'A' or 'N'.")
 
+timestamp = datetime.now().strftime("%Y-%m-%d")
+
+if args.command is None:
+    filename = get_filename()
+elif args.command == 'new':
+    timestamp = datetime.now().strftime("%Y-%m-%d")
+    filename = f"{args.name}{timestamp}.txt"
+elif args.command  =='append':
+    filename = args.file.name
+    args.file.write(f"\n--- Appending on {timestamp} ---\n")
+    args.file.close()
 
 import queue
 import sys
@@ -44,7 +56,6 @@ import threading
 import sounddevice as sd
 import numpy as np
 import nemo.collections.asr as nemo_asr
-from datetime import datetime
 import configparser
 import webrtcvad
 
@@ -102,17 +113,6 @@ def refresh_status():
         sys.stdout.write(f"\033[s\033[1A\r\033[{state}] Mic: {counts['mic']} | Backlog: {counts['backlog']}\033[u")
         sys.stdout.flush()
 
-timestamp = datetime.now().strftime("%Y-%m-%d")
-
-if args.command is None:
-    filename = get_filename()
-elif args.command == 'new':
-    timestamp = datetime.now().strftime("%Y-%m-%d")
-    filename = f"{args.name}{timestamp}.txt"
-elif args.command  =='append':
-    filename = args.file.name
-    args.file.write(f"\n--- Appending on {timestamp} ---\n")
-    args.file.close()
 
 
 # --- Load ASR model ---
@@ -236,5 +236,4 @@ except KeyboardInterrupt:
     os._exit(0)
 except Exception as e:
     print(f"Error: {e}")
-
 
