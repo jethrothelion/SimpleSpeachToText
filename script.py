@@ -140,8 +140,8 @@ def console_input_thread():
         elif user_text in ("resume", "r", "go"):
             status("\n--- Transcription RESUMED. ---\n", "\x1b[32m")
             pause_event.set()
-        elif user_text in ("exit", "quit", "q"):
-            status("\n--- Transcription EXIT ATTEMPTING. ---\n", "\x1b[91m")
+        elif user_text in ("exit", "quit", "q", "stop"):
+            status("\n--- Transcription EXITING ---\n", "\x1b[91m")
             pause_event.clear()
             quit_event.set()
             break
