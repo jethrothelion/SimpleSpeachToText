@@ -21,8 +21,8 @@ args = parser.parse_args()
 
 def get_filename():
     while True:
-        Filenamemode = input("Append or new file? (A or N) ").lower().strip()
-        if Filenamemode == "a":
+        fileNameMode = input("Append or new file? (A or N) ").lower().strip()
+        if fileNameMode == "a":
             filename = input("Enter filename: ")
             if os.path.exists(filename):
                 return filename
@@ -30,11 +30,19 @@ def get_filename():
                 print("no existing file, please enter another name")
                 continue
 
-        elif Filenamemode == "n":
+        elif fileNameMode == "n":
             classname = input("Enter desired file name: ")
             filename = f"{classname} {timestamp}.txt"
-            return filename
-
+            if os.path.exists(filename):
+                existingFileMode = input("File already exists, would you like to append(A) or overwrite(O)? (A or O) ").lower().strip()
+                if existingFileMode == "a":
+                    return filename
+                if existingFileMode == "o":
+                    open(filename, "w").close()
+                    return filename
+                continue
+            else:
+                print("Invalid choice, please enter 'A' or 'O'.")
         else:
             print("Invalid choice, please enter 'A' or 'N'.")
 
