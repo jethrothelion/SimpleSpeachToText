@@ -3,20 +3,9 @@
 import argparse
 import os
 from datetime import datetime
-
-# --- command line arg set up ---
-parser = argparse.ArgumentParser(description="Real-time audio transcription to a text file.")
-subparsers = parser.add_subparsers(dest='command', help='Available commands')
-
-#  'new' command: Creates a new file
-parser_new = subparsers.add_parser('new', help='Create a new transcription file.')
-parser_new.add_argument('name', type=str, help='The base name for the new file (e.g., "Meeting Notes").')
-
-# 'append' command: Appends to an existing file
-parser_append = subparsers.add_parser('append', help='Append to an existing transcription file.')
-parser_append.add_argument('file', type=argparse.FileType('a'), help='The full path to the file to append to.')
-
-args = parser.parse_args()
+import queue
+import sys
+import threading
 
 
 def get_filename():
@@ -48,7 +37,22 @@ def get_filename():
 
 timestamp = datetime.now().strftime("%Y-%m-%d")
 
-if args.command is None:
+# --- command line arg set up ---
+parser = argparse.ArgumentParser(description="Real-time audio transcription to a text file.")
+subparsers = parser.add_subparsers(dest='command', help='Available commands')
+
+#  'new' command: Creates a new file
+parser_new = subparsers.add_parser('new', help='Create a new transcription file.')
+parser_new.add_argument('name', type=str, help='The base name for the new file (e.g., "Meeting Notes").')
+
+# 'append' command: Appends to an existing file
+parser_append = subparsers.add_parser('append', help='Append to an existing transcription file.')
+parser_append.add_argument('file', type=argparse.FileType('a'), help='The full path to the file to append to.')
+
+args = parser.parse_args()
+
+
+if args.command is None:  #If no cmd args were pased run get_filename()
     filename = get_filename()
 elif args.command == 'new':
     timestamp = datetime.now().strftime("%Y-%m-%d")
@@ -58,9 +62,7 @@ elif args.command  =='append':
     args.file.write(f"\n--- Appending on {timestamp} ---\n")
     args.file.close()
 
-import queue
-import sys
-import threading
+##Import here to avoid long time before inputing filename
 import sounddevice as sd
 import numpy as np
 import nemo.collections.asr as nemo_asr
@@ -86,7 +88,6 @@ vad.set_mode(vad_Aggressiveness)  # Set aggressiveness mode from 0 (least aggres
 VAD_FRAME_DURATION_MS = 30
 VAD_SAMPLES_PER_FRAME = int(samplerate * VAD_FRAME_DURATION_MS / 1000)
 
-
 # --- Events and queues ---
 pause_event = threading.Event()
 quit_event = threading.Event()
@@ -111,33 +112,6 @@ def status(msg,color="\x1b[0m"): #default color if no color passed
         input_color = "\x1b[96m"
         sys.stdout.write(f"\r\x1b[2K\x1b[1A\r\x1b[2K{color}{msg}  \n{state_color}[{state}] Mic: {counts['mic']}  Backlog: {counts['backlog']}{input_color} | pause, quit, resume or input text>>{clear_colors}")
         sys.stdout.flush()
-
-def refresh_status():
-    """redraws the cb_status bar in place."""
-    with print_lock:
-        if pause_event.is_set():
-            state = "LIVE"
-        else:
-            state = "PAUSED"
-        sys.stdout.write(f"\033[s\033[1A\r\033[{state}] Mic: {counts['mic']} | Backlog: {counts['backlog']}\033[u")
-        sys.stdout.flush()
-
-
-
-# --- Load ASR model ---
-model = nemo_asr.models.ASRModel.from_pretrained(model_name=model_name)
-print("Model loaded")
-
-
-
-def callback(indata, frames, time, cb_status):
-    if not pause_event.is_set():  # If paused, do nothing
-        return
-    if cb_status:
-        print(f"Audio Status: {cb_status}\n>> ", end="")
-    # Always flatten to 1-D
-    mic_q.put(indata.flatten().astype(np.float32))
-
 
 def console_input_thread():
     while True:
@@ -190,8 +164,21 @@ def transcription():
 threading.Thread(target=console_input_thread, daemon=True).start()
 threading.Thread(target=transcription, daemon=True).start()
 
-print("Streaming from microphone... Press Ctrl+C to stop.")
+def callback(indata, frames, time, cb_status):
+    if not pause_event.is_set():  # If paused, do nothing
+        return
+    if cb_status:
+        print(f"Audio Status: {cb_status}\n>> ", end="")
+    # Always flatten to 1-D
+    mic_q.put(indata.flatten().astype(np.float32))
 
+# --- Load ASR model ---
+model = nemo_asr.models.ASRModel.from_pretrained(model_name=model_name)
+print("Model loaded")
+
+print("Streaming from microphone... Press Ctrl+C to stop or type pause or quit")
+
+## MAIN LOOP
 try:
     transcription_buffer = []
     processing_buffer = np.array([], dtype=np.float32)
