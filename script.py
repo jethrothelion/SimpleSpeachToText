@@ -29,9 +29,10 @@ def get_filename():
                 if existingFileMode == "o":
                     open(filename, "w").close()
                     return filename
+                print("Invalid choice, please enter 'A' or 'O'.")
                 continue
             else:
-                print("Invalid choice, please enter 'A' or 'O'.")
+                return filename
         else:
             print("Invalid choice, please enter 'A' or 'N'.")
 
