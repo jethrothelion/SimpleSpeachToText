@@ -58,6 +58,7 @@ import numpy as np
 import nemo.collections.asr as nemo_asr
 import configparser
 import webrtcvad
+import io, contextlib
 
 # --- read config variables ---
 config = configparser.ConfigParser()
@@ -100,7 +101,7 @@ def status(msg,color="\x1b[0m"): #default color if no color passed
         clear_colors = "\x1b[0m"
         state_color = "\x1b[95m"
         input_color = "\x1b[96m"
-        sys.stdout.write(f"\r\033{color}{msg}\n  {state_color}[{state}] Mic: {counts['mic']} | Backlog: {counts['backlog']}\n{input_color}p, q, r or input text>>{clear_colors}")
+        sys.stdout.write(f"\r\x1b[2K\x1b[1A\r\x1b[2K{color}{msg}  \n{state_color}[{state}] Mic: {counts['mic']}  Backlog: {counts['backlog']}{input_color} | pause, quit, resume or input text>>{clear_colors}")
         sys.stdout.flush()
 
 def refresh_status():
@@ -155,9 +156,13 @@ def transcription():
             # Wait for up to 0.1s for a chunk to be ready to transcribe
             audio_to_process = transcription_q.get(timeout=0.1)
 
-            result = model.transcribe(audio=[audio_to_process], batch_size=1)
+            buffer = io.StringIO()
+            with contextlib.redirect_stderr(buffer):
+                result = model.transcribe(audio=[audio_to_process], batch_size=1)
 
-
+            transcription_progress = buffer.getvalue().split("\r")[-1].strip()
+            if transcription_progress:
+                status(transcription_progress, "\x1b[31m")
 
             transcribed_text = result[0].text if result and result[0].text else " "
             status(f"Transcribed: {transcribed_text}", "\x1b[93m") #yellow
